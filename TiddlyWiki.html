@@ -3849,7 +3849,7 @@ function main()
 	t3 = new Date();
 	invokeParamifier(params,"onload");
 	t4 = new Date();
-	readOnly = (window.location.protocol == "file:") ? false : config.options.chkHttpReadOnly;
+	//readOnly = (window.location.protocol == "file:") ? false : config.options.chkHttpReadOnly;
 	var pluginProblem = loadPlugins();
 	t5 = new Date();
 	formatter = new Formatter(config.formatters);
@@ -9067,14 +9067,18 @@ function saveChanges(onlyIfDirty,tiddlers)
 	clearMessage();
 	var t0 = new Date();
 	var originalPath = document.location.toString();
-	if(originalPath.substr(0,5) != "file:") {
+	/*if(originalPath.substr(0,5) != "file:") {
 		alert(config.messages.notFileUrlError);
 		if(store.tiddlerExists(config.messages.saveInstructions))
 			story.displayTiddler(null,config.messages.saveInstructions);
 		return;
-	}
+	}*/
 	var localPath = getLocalPath(originalPath);
-	var original = loadOriginal(localPath);
+	var original;// = loadOriginal(localPath);
+	var xhttp = new XMLHttpRequest();
+	xhttp.open("GET", originalPath, false);
+	xhttp.send();
+	original = xhttp.response;
 	if(original == null) {
 		alert(config.messages.cantSaveError);
 		if(store.tiddlerExists(config.messages.saveInstructions))
@@ -9087,14 +9091,14 @@ function saveChanges(onlyIfDirty,tiddlers)
 		return;
 	}
 	saveMain(localPath,original,posDiv);
-	if(config.options.chkSaveBackups)
+	/*if(config.options.chkSaveBackups)
 		saveBackup(localPath,original);
 	if(config.options.chkSaveEmptyTemplate)
 		saveEmpty(localPath,original,posDiv);
 	if(config.options.chkGenerateAnRssFeed && saveRss instanceof Function)
 		saveRss(localPath);
 	if(config.options.chkDisplayInstrumentation)
-		displayMessage("saveChanges " + (new Date()-t0) + " ms");
+		displayMessage("saveChanges " + (new Date()-t0) + " ms");*/
 }
 
 function saveMain(localPath,original,posDiv)
@@ -9168,7 +9172,7 @@ function getLocalPath(origPath)
 	else if(originalPath.indexOf("file:/") == 0) // mac/unix local file
 		localPath = unescape(originalPath.substr(5));
 	else // pc network file
-		localPath = "\\\\" + unescape(originalPath.substr(7)).replace(new RegExp("/","g"),"\\");
+		localPath = originalPath.replace(new RegExp("http://[^/]+/"),"");
 	return localPath;
 }
 
@@ -9314,7 +9318,7 @@ function convertUnicodeToUTF8(s)
 
 function manualConvertUnicodeToUTF8(s)
 {
-	return unescape(encodeURIComponent(s));
+	return decodeURIComponent(encodeURIComponent(s));
 }
 
 function mozConvertUnicodeToUTF8(s)
@@ -9351,12 +9355,21 @@ function copyFile(dest,source)
 
 function saveFile(fileUrl,content)
 {
-	var r = mozillaSaveFile(fileUrl,content);
+	var backupPath = fileUrl.substr(0,fileUrl.lastIndexOf(".")) + "." + (new Date()).convertToYYYYMMDDHHMMSSMMM() + ".html";
+	var formData = new FormData();
+	var xhr = new XMLHttpRequest();
+  xhr.open('POST', '/save', false);
+	formData.append("tiddlers", content);
+	formData.append("filename", fileUrl);
+	formData.append("backup", backupPath);
+  xhr.send(formData);
+	return true;
+	/*var r = mozillaSaveFile(fileUrl,content);
 	if(!r)
 		r = ieSaveFile(fileUrl,content);
 	if(!r)
 		r = javaSaveFile(fileUrl,content);
-	return r;
+	return r;*/
 }
 
 function loadFile(fileUrl)
